@@ -79,6 +79,26 @@ main{max-width:1680px;padding:20px clamp(12px,2.5vw,38px);margin:0 auto}
 .att-setting-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .att-setting-row .input{flex:1 1 290px;min-width:175px}
 .att-setting-row .chip{white-space:nowrap}
+
+/* Ẩn hai mục nội bộ mặc định, quản lý mới được thay đổi hiển thị. */
+[hidden]{display:none!important}
+.manager-trigger{border:1px solid #c6d7e3;border-radius:10px;background:#fff;color:#244d68;font-size:13px;font-weight:750;padding:9px 13px;cursor:pointer}
+.manager-trigger:hover{background:#eaf5f9}
+.toolbar-meta{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+.manager-panel{padding:15px 17px;border:1px solid #c7dce6;border-radius:12px;background:#f5fafe;margin:0 0 14px;color:#163f5b}
+.manager-panel h3{font-size:16px;margin:0 0 8px}
+.manager-panel p{font-size:12px;line-height:1.55;color:#5a7284;margin:8px 0}
+.manager-login{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0}
+.manager-login label{font-weight:650;font-size:13px}
+.manager-login input{max-width:185px;width:100%}
+.manager-action{border:1px solid #bfd2df;padding:9px 13px;border-radius:9px;background:#fff;color:#16455e;font-weight:700;cursor:pointer}
+.manager-action.primary{background:#0a6c77;border-color:#0a6c77;color:#fff}
+.manager-switches{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin:12px 0}
+.manager-switch{display:flex;align-items:center;gap:10px;min-height:54px;padding:12px;background:#fff;border:1px solid #d7e5ec;border-radius:9px;cursor:pointer;font-size:14px;font-weight:650}
+.manager-switch input{width:19px;height:19px;accent-color:#0a766e;flex-shrink:0}
+.manager-footer{display:flex;flex-wrap:wrap;gap:9px;margin-top:10px}
+#manager-auth-status{font-size:13px;color:#a14135;font-weight:650}
+@media(max-width:640px){.toolbar-meta{width:100%;justify-content:space-between}.manager-login input{max-width:100%;flex:1 1 100%}}
 </style></head>
 <body>
 <header>
@@ -90,7 +110,29 @@ main{max-width:1680px;padding:20px clamp(12px,2.5vw,38px);margin:0 auto}
 <button class="tab active" data-tab="mapbox">Bản đồ đường phố</button>
 <button class="tab" data-tab="photo">Ảnh Google Maps gốc</button>
 <button class="tab" data-tab="schedule">📋 Phân công · Điểm danh · Copy</button>
-</div><span style="font-size:12px;color:#627a8d">Lịch phát 100 tờ/người · cập nhật 11/10/2026</span></div>
+</div><div class="toolbar-meta"><span style="font-size:12px;color:#627a8d">Lịch phát 100 tờ/người · cập nhật 11/10/2026</span><button id="manager-open" class="manager-trigger" type="button" aria-expanded="false" aria-controls="manager-panel">⚙️ Quản lý hiển thị</button></div></div>
+<section id="manager-panel" class="manager-panel" hidden aria-label="Thiết lập hiển thị của quản lý">
+ <h3>⚙️ Quản lý hiển thị</h3>
+ <div id="manager-auth">
+  <p>Nhập mật khẩu quản lý để bật/tắt các mục nội bộ.</p>
+  <form id="manager-login" class="manager-login" autocomplete="off">
+   <label for="manager-password">Mật khẩu:</label>
+   <input id="manager-password" class="input" type="password" inputmode="numeric" maxlength="20" autocomplete="off" required>
+   <button type="submit" class="manager-action primary">Mở quản lý</button>
+   <span id="manager-auth-status" role="status" aria-live="polite"></span>
+  </form>
+ </div>
+ <div id="manager-controls" hidden>
+  <p>Chọn những mục được hiển thị trên trang Phân công · Điểm danh · Copy.</p>
+  <div class="manager-switches">
+   <label class="manager-switch"><input type="checkbox" id="manager-show-balance"> Hiện bảng ⚖️ Phân bổ số buổi / số tờ</label>
+   <label class="manager-switch"><input type="checkbox" id="manager-show-drive"> Hiện mục ⚙️ Kết nối Google Apps Script</label>
+  </div>
+  <p>Hai mục mặc định được ẩn. Tùy chọn chỉ lưu trên trình duyệt này, không thay đổi dữ liệu điểm danh.</p>
+  <div class="manager-footer"><button id="manager-hide-all" class="manager-action" type="button">Ẩn cả hai mục</button><button id="manager-lock" class="manager-action primary" type="button">Khóa và đóng</button></div>
+ </div>
+ <p>Mật khẩu này chỉ khóa chức năng điều khiển hiển thị trên giao diện, không bảo vệ mã nguồn của website công khai.</p>
+</section>
 <div class="callout"><b>Giữ đúng tuyến:</b> Bản đồ tương tác bên dưới để phóng to, quan sát địa bàn. Bấm <b>Xem trên bản đồ</b> hoặc <b>Google Maps gốc</b> ở danh sách bên phải để mở <b>đúng link tuyến trong Excel của anh</b> (không tự thay bằng vị trí phỏng đoán). 3 tuyến mới có nhãn “Bổ sung”.</div>
 <section id="mapbox"><div class="content">
 <div class="map-panel"><section class="route-preview" aria-label="Xem bản đồ theo tuyến"><div class="preview-toolbar"><div><strong>Google Maps — xem chi tiết theo tuyến</strong><p>Chọn tuyến trong danh sách để xem khu vực. Đây là bản đồ tìm kiếm vị trí, <b>không thay thế đoạn tuyến đã khoanh trong link gốc</b>.</p></div><a id="original-link" class="link" href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">Mở link Maps gốc ↗</a></div><iframe id="gmframe" title="Google Maps khu vực đang chọn" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="route-preview-foot" id="selected-route">Hãy chọn tuyến ở danh sách bên phải</div></section><div id="map" class="hidden"></div><div class="map-foot"><button id="toggleosm" class="chip" type="button">Hiện / ẩn bản đồ OpenStreetMap</button> · Bản đồ nền © OpenStreetMap contributors. Tâm nhìn khởi tạo theo ảnh Maps anh gửi (16.036759, 108.212432), <b>không phải định vị chính xác từng tuyến</b>. Nhân viên cần mở link gốc để xác nhận đoạn đường.</div></div>
@@ -105,14 +147,14 @@ main{max-width:1680px;padding:20px clamp(12px,2.5vw,38px);margin:0 auto}
   <p class="att-note">Tự xác nhận từ Google Drive: thư mục của ngày có <b>thư mục con đúng tên nhân viên</b> thì hiện Hoàn tất. Không cần tích tay. Trạng thái đồng bộ giữa các máy, được kiểm tra theo giờ, không cập nhật tức thì.</p>
   <p id="attendance-save-note" class="att-note" role="status" aria-live="polite"></p>
 <div class="att-actions"><button type="button" id="refresh-drive-now" class="copy-action">↻ CẬP NHẬT NGAY TỪ DRIVE</button><span id="drive-now-status" class="att-refresh-status" role="status" aria-live="polite"></span></div>
-<details id="direct-drive-settings" class="drive-settings" hidden style="display:none!important"><summary>⚙️ Kết nối Google Apps Script (làm một lần)</summary>
+<details id="direct-drive-settings" class="drive-settings" hidden><summary>⚙️ Kết nối Google Apps Script (làm một lần)</summary>
 <p>Triển khai Apps Script với quyền đọc các thư mục ngày, sau đó dán URL Web app kết thúc bằng <b>/exec</b>. Không cần nhập tài khoản hay mật khẩu tại đây.</p>
 <div class="att-setting-row"><input id="direct-drive-url" class="input" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" spellcheck="false"><button type="button" id="save-direct-drive-url" class="chip">Lưu kết nối</button><button type="button" id="clear-direct-drive-url" class="chip">Xóa URL</button></div>
 <p id="direct-drive-settings-status" class="att-note" role="status" aria-live="polite"></p>
 <p><a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener noreferrer">Mở Google Apps Script ↗</a>. Link chỉ lưu trên thiết bị hiện tại, không đưa lên GitHub.</p></details>
 </div>
 <div class="copy-panel"><div class="copy-row"><div><h3>📋 Lịch gửi nhóm nhân viên</h3><p>Chọn ngày ở trên, bấm Copy rồi dán vào room Zalo. Tin nhắn có tên từng bạn, điểm phát, số tờ và link Google Maps gốc.</p></div><div class="copy-actions"><button id="copy-day" class="copy-action" type="button">📋 COPY LỊCH NGÀY ĐÃ CHỌN</button><span id="copy-status" class="copy-status" role="status" aria-live="polite"></span></div></div><details id="copy-preview-wrap"><summary>Xem trước nội dung sẽ gửi vào room</summary><pre id="copy-preview"></pre></details></div>
-<details class="balance-panel"><summary>⚖️ Phân bổ: Nam, Khoa, Hùng 4 lượt; 1 bạn khác 4 lượt; 8 bạn còn lại 3 lượt</summary><div id="balance-grid" class="balance-grid"></div></details>
+<details class="balance-panel" hidden><summary>⚖️ Phân bổ: Nam, Khoa, Hùng 4 lượt; 1 bạn khác 4 lượt; 8 bạn còn lại 3 lượt</summary><div id="balance-grid" class="balance-grid"></div></details>
 <div id="paircards" class="grid"></div><p class="warning">Ngày 11/10 giữ nguyên 8 bạn và tuyến đã triển khai. Nam, Khoa, Hùng còn 4 buổi/người; không ai dưới 3 buổi. Từ 12/10, người đi cùng và tuyến là đề xuất; quản lý xác nhận trước khi gửi. Nút Copy chỉ sao chép nội dung, không tự gửi Zalo.</p>
 </div></section>
 </main>
@@ -426,4 +468,84 @@ function renderBalance(){
  document.getElementById('balance-grid').innerHTML=arr.map(([name,g])=>`<div class="balance-person"><b>${['Nam','Khoa','Hùng'].includes(name)?'⭐ ':''}${esc(name)}</b><small>${g.days.length} buổi • ${g.total} tờ • Ngày ${g.days.join(', ')}/10</small></div>`).join('');
 }
 renderBalance();
+
+/* Điều khiển hiển thị tại máy người dùng; không thay đổi dữ liệu, kết nối hoặc lịch. */
+(function initManagerVisibility(){
+ const prefKey="event-manager-visibility-v1";
+ const panel=document.getElementById("manager-panel");
+ const trigger=document.getElementById("manager-open");
+ const auth=document.getElementById("manager-auth");
+ const controls=document.getElementById("manager-controls");
+ const form=document.getElementById("manager-login");
+ const password=document.getElementById("manager-password");
+ const message=document.getElementById("manager-auth-status");
+ const balance=document.querySelector(".balance-panel");
+ const drive=document.getElementById("direct-drive-settings");
+ const balanceInput=document.getElementById("manager-show-balance");
+ const driveInput=document.getElementById("manager-show-drive");
+ const preference={balance:false,drive:false};
+ try{
+   const saved=JSON.parse(localStorage.getItem(prefKey)||"null");
+   if(saved&&typeof saved==="object"){
+     preference.balance=saved.balance===true;
+     preference.drive=saved.drive===true;
+   }
+ }catch(_){}
+ function apply(){
+   balance.hidden=!preference.balance;
+   drive.hidden=!preference.drive;
+   balanceInput.checked=preference.balance;
+   driveInput.checked=preference.drive;
+ }
+ function save(){
+   try{localStorage.setItem(prefKey,JSON.stringify(preference))}catch(_){}
+ }
+ function close(){
+   panel.hidden=true;
+   trigger.setAttribute("aria-expanded","false");
+   controls.hidden=true;
+   auth.hidden=false;
+   password.value="";
+   message.textContent="";
+ }
+ trigger.addEventListener("click",()=>{
+   if(!panel.hidden){close();return;}
+   panel.hidden=false;
+   trigger.setAttribute("aria-expanded","true");
+   if(auth.hidden)controls.querySelector("input").focus();
+   else password.focus();
+ });
+ form.addEventListener("submit",e=>{
+   e.preventDefault();
+   if(password.value!=="2026"){
+     message.textContent="⚠️ Mật khẩu chưa đúng.";
+     password.select();
+     return;
+   }
+   password.value="";
+   message.textContent="";
+   auth.hidden=true;
+   controls.hidden=false;
+   balanceInput.focus();
+ });
+ balanceInput.addEventListener("change",()=>{
+   preference.balance=balanceInput.checked;
+   apply();save();
+ });
+ driveInput.addEventListener("change",()=>{
+   preference.drive=driveInput.checked;
+   if(preference.drive)drive.open=true;
+   apply();save();
+ });
+ document.getElementById("manager-hide-all").addEventListener("click",()=>{
+   preference.balance=false;
+   preference.drive=false;
+   apply();save();
+ });
+ document.getElementById("manager-lock").addEventListener("click",close);
+ document.addEventListener("keydown",e=>{
+   if(e.key==="Escape"&&!panel.hidden)close();
+ });
+ apply();
+})();
 </script></body></html>
