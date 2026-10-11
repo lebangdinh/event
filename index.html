@@ -163,11 +163,32 @@ function isValidAppsScriptUrl(raw){
 function loadDirectDriveUrl(){
  try{driveDirectEndpoint=localStorage.getItem(DRIVE_URL_STORAGE_KEY)||""}
  catch(_){driveDirectEndpoint=""}
+ let imported=false;
+ // Kết nối một chạm: ID chỉ đi trong #fragment, không gửi đến GitHub Pages.
+ const fragment=window.location.hash||"";
+ if(fragment.startsWith("#connect-drive=")){
+   const id=fragment.substring("#connect-drive=".length);
+   if(id.length>20&&id.length<300&&/^[A-Za-z0-9_-]+$/.test(id)){
+     const candidate="https://script.google.com/macros/s/"+id+"/exec";
+     if(isValidAppsScriptUrl(candidate)){
+       driveDirectEndpoint=candidate;imported=true;
+       try{localStorage.setItem(DRIVE_URL_STORAGE_KEY,candidate)}catch(_){}
+     }
+   }
+   // Xóa mã kết nối khỏi thanh địa chỉ sau khi tiếp nhận.
+   try{history.replaceState(null,"",location.pathname+location.search)}catch(_){}
+ }
  if(!isValidAppsScriptUrl(driveDirectEndpoint))driveDirectEndpoint="";
  document.getElementById("direct-drive-url").value=driveDirectEndpoint;
  document.getElementById("direct-drive-settings-status").textContent=driveDirectEndpoint?
  "✓ Đã lưu kết nối. Bấm Cập nhật ngay để lấy dữ liệu Drive.":
  "Chưa có kết nối Apps Script. Cài một lần rồi dán URL /exec.";
+ if(imported){
+   const tab=document.querySelector('.tab[data-tab="schedule"]');
+   if(tab)tab.click();
+   document.getElementById("drive-now-status").textContent="Đã nhận kết nối. Đang cập nhật trực tiếp…";
+   instantDriveRefresh();
+ }
 }
 document.getElementById("save-direct-drive-url").addEventListener("click",()=>{
  const raw=document.getElementById("direct-drive-url").value.trim();
