@@ -105,7 +105,7 @@ main{max-width:1680px;padding:20px clamp(12px,2.5vw,38px);margin:0 auto}
   <p class="att-note">Tự xác nhận từ Google Drive: thư mục của ngày có <b>thư mục con đúng tên nhân viên</b> thì hiện Hoàn tất. Không cần tích tay. Trạng thái đồng bộ giữa các máy, được kiểm tra theo giờ, không cập nhật tức thì.</p>
   <p id="attendance-save-note" class="att-note" role="status" aria-live="polite"></p>
 <div class="att-actions"><button type="button" id="refresh-drive-now" class="copy-action">↻ CẬP NHẬT NGAY TỪ DRIVE</button><span id="drive-now-status" class="att-refresh-status" role="status" aria-live="polite"></span></div>
-<details id="direct-drive-settings" class="drive-settings"><summary>⚙️ Kết nối Google Apps Script (làm một lần)</summary>
+<details id="direct-drive-settings" class="drive-settings" hidden style="display:none!important"><summary>⚙️ Kết nối Google Apps Script (làm một lần)</summary>
 <p>Triển khai Apps Script với quyền đọc các thư mục ngày, sau đó dán URL Web app kết thúc bằng <b>/exec</b>. Không cần nhập tài khoản hay mật khẩu tại đây.</p>
 <div class="att-setting-row"><input id="direct-drive-url" class="input" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" spellcheck="false"><button type="button" id="save-direct-drive-url" class="chip">Lưu kết nối</button><button type="button" id="clear-direct-drive-url" class="chip">Xóa URL</button></div>
 <p id="direct-drive-settings-status" class="att-note" role="status" aria-live="polite"></p>
