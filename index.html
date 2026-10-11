@@ -69,6 +69,16 @@ main{max-width:1680px;padding:20px clamp(12px,2.5vw,38px);margin:0 auto}
 .attendee-done{background:#e5f6ef;border-color:#8cd3b6}
 .attendee-done em{color:#087251;font-weight:800}
 
+
+.att-actions{display:flex;gap:11px;flex-wrap:wrap;align-items:center;margin-top:11px}
+.att-actions button:disabled{opacity:.6;cursor:wait}
+.att-refresh-status{font-size:13px;color:#18566e;line-height:1.6}
+.drive-settings{margin-top:12px;padding-top:11px;border-top:1px solid #c5dfd7}
+.drive-settings summary{font-size:13px;font-weight:700;cursor:pointer;color:#17526b}
+.drive-settings p{font-size:12px;color:#5b7180;line-height:1.7}
+.att-setting-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.att-setting-row .input{flex:1 1 290px;min-width:175px}
+.att-setting-row .chip{white-space:nowrap}
 </style></head>
 <body>
 <header>
@@ -94,6 +104,12 @@ main{max-width:1680px;padding:20px clamp(12px,2.5vw,38px);margin:0 auto}
   <div class="attendance-track"><span id="attendance-progress" style="width:0%"></span></div>
   <p class="att-note">Tự xác nhận từ Google Drive: thư mục của ngày có <b>thư mục con đúng tên nhân viên</b> thì hiện Hoàn tất. Không cần tích tay. Trạng thái đồng bộ giữa các máy, được kiểm tra theo giờ, không cập nhật tức thì.</p>
   <p id="attendance-save-note" class="att-note" role="status" aria-live="polite"></p>
+<div class="att-actions"><button type="button" id="refresh-drive-now" class="copy-action">↻ CẬP NHẬT NGAY TỪ DRIVE</button><span id="drive-now-status" class="att-refresh-status" role="status" aria-live="polite"></span></div>
+<details id="direct-drive-settings" class="drive-settings"><summary>⚙️ Kết nối Google Apps Script (làm một lần)</summary>
+<p>Triển khai Apps Script với quyền đọc các thư mục ngày, sau đó dán URL Web app kết thúc bằng <b>/exec</b>. Không cần nhập tài khoản hay mật khẩu tại đây.</p>
+<div class="att-setting-row"><input id="direct-drive-url" class="input" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" spellcheck="false"><button type="button" id="save-direct-drive-url" class="chip">Lưu kết nối</button><button type="button" id="clear-direct-drive-url" class="chip">Xóa URL</button></div>
+<p id="direct-drive-settings-status" class="att-note" role="status" aria-live="polite"></p>
+<p><a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener noreferrer">Mở Google Apps Script ↗</a>. Link chỉ lưu trên thiết bị hiện tại, không đưa lên GitHub.</p></details>
 </div>
 <div class="copy-panel"><div class="copy-row"><div><h3>📋 Lịch gửi nhóm nhân viên</h3><p>Chọn ngày ở trên, bấm Copy rồi dán vào room Zalo. Tin nhắn có tên từng bạn, điểm phát, số tờ và link Google Maps gốc.</p></div><div class="copy-actions"><button id="copy-day" class="copy-action" type="button">📋 COPY LỊCH NGÀY ĐÃ CHỌN</button><span id="copy-status" class="copy-status" role="status" aria-live="polite"></span></div></div><details id="copy-preview-wrap"><summary>Xem trước nội dung sẽ gửi vào room</summary><pre id="copy-preview"></pre></details></div>
 <details class="balance-panel"><summary>⚖️ Phân bổ: Nam, Khoa, Hùng 4 lượt; 1 bạn khác 4 lượt; 8 bạn còn lại 3 lượt</summary><div id="balance-grid" class="balance-grid"></div></details>
@@ -132,6 +148,91 @@ const today=new Date();
 if(today.getFullYear()===2026&&today.getMonth()===9&&today.getDate()>=11&&today.getDate()<=19){daySel.value=String(today.getDate());}
 
 
+
+const DRIVE_URL_STORAGE_KEY="event-drive-appscript-url-v1";
+let driveDirectEndpoint="";
+function isValidAppsScriptUrl(raw){
+ try{
+  const u=new URL(String(raw||"").trim());
+  const parts=u.pathname.split("/").filter(Boolean);
+  return u.protocol==="https:" && u.hostname==="script.google.com" &&
+    parts.length===4 && parts[0]==="macros" && parts[1]==="s" &&
+    parts[3]==="exec" && /^[A-Za-z0-9_-]+$/.test(parts[2]);
+ }catch(_){return false}
+}
+function loadDirectDriveUrl(){
+ try{driveDirectEndpoint=localStorage.getItem(DRIVE_URL_STORAGE_KEY)||""}
+ catch(_){driveDirectEndpoint=""}
+ if(!isValidAppsScriptUrl(driveDirectEndpoint))driveDirectEndpoint="";
+ document.getElementById("direct-drive-url").value=driveDirectEndpoint;
+ document.getElementById("direct-drive-settings-status").textContent=driveDirectEndpoint?
+ "✓ Đã lưu kết nối. Bấm Cập nhật ngay để lấy dữ liệu Drive.":
+ "Chưa có kết nối Apps Script. Cài một lần rồi dán URL /exec.";
+}
+document.getElementById("save-direct-drive-url").addEventListener("click",()=>{
+ const raw=document.getElementById("direct-drive-url").value.trim();
+ const status=document.getElementById("direct-drive-settings-status");
+ if(!isValidAppsScriptUrl(raw)){status.textContent="⚠️ URL không đúng định dạng Google Apps Script Web app /exec.";return}
+ driveDirectEndpoint=raw;
+ try{localStorage.setItem(DRIVE_URL_STORAGE_KEY,raw);status.textContent="✓ Đã lưu URL trên trình duyệt này."}
+ catch(_){status.textContent="⚠️ Trình duyệt chặn lưu cài đặt; kết nối sẽ mất khi tải lại."}
+});
+document.getElementById("clear-direct-drive-url").addEventListener("click",()=>{
+ driveDirectEndpoint="";
+ document.getElementById("direct-drive-url").value="";
+ try{localStorage.removeItem(DRIVE_URL_STORAGE_KEY)}catch(_){}
+ document.getElementById("direct-drive-settings-status").textContent="Đã xóa URL trong trình duyệt này.";
+});
+function requestAppsScript(endpoint){
+ return new Promise((resolve,reject)=>{
+  const cb="eventDriveCallback_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10);
+  const u=new URL(endpoint);u.searchParams.set("callback",cb);u.searchParams.set("_",String(Date.now()));
+  const script=document.createElement("script");let finished=false;
+  function finish(err,payload){
+   if(finished)return;finished=true;
+   clearTimeout(timeout);script.remove();delete window[cb];
+   if(err)reject(err);else resolve(payload);
+  }
+  window[cb]=payload=>finish(null,payload);
+  script.async=true;script.referrerPolicy="no-referrer";
+  script.onerror=()=>finish(new Error("Không đọc được Apps Script. Kiểm tra đường dẫn và quyền Web app."));
+  const timeout=setTimeout(()=>finish(new Error("Hết 25 giây chờ Drive phản hồi.")),25000);
+  script.src=u.toString();document.head.appendChild(script);
+ });
+}
+async function instantDriveRefresh(){
+ const status=document.getElementById("drive-now-status");
+ if(!isValidAppsScriptUrl(driveDirectEndpoint)){
+  document.getElementById("direct-drive-settings").open=true;
+  status.textContent="⚠️ Chưa kết nối Apps Script. Dán URL trong mục bên dưới.";
+  document.getElementById("direct-drive-url").focus();return;
+ }
+ const btn=document.getElementById("refresh-drive-now");
+ btn.disabled=true;status.textContent="Đang đọc thư mục Drive của 9 ngày…";
+ try{
+  const result=await requestAppsScript(driveDirectEndpoint);
+  if(!result||result.ok!==true||result.version!==1||!Array.isArray(result.completed)){
+    throw new Error(result?.error||"Phản hồi từ Apps Script không hợp lệ");
+  }
+  const fresh={};
+  for(const e of result.completed){
+   if(e && Number.isInteger(e.day) && typeof e.name==="string" &&
+      DATA.plan.some(x=>x.day===e.day&&x.name===e.name)){
+     fresh[checkinKey(e.day,e.name)]=true;
+   }
+  }
+  checkins=fresh;checkinLoaded=true;lastDriveUpdated=result.updatedAt||new Date().toISOString();
+  showDay();
+  const done=DATA.plan.filter(x=>completed(x.day,x.name)).length;
+  status.textContent="✓ Đã cập nhật trực tiếp: "+done+"/"+DATA.plan.length+" lượt hoàn tất.";
+  document.getElementById("attendance-save-note").textContent=
+    "Đã đọc Drive lúc "+new Date(lastDriveUpdated).toLocaleString("vi-VN")+
+    ". Trạng thái mới hiển thị trên trình duyệt này; các máy khác có thể bấm Cập nhật ngay.";
+ }catch(err){status.textContent="⚠️ "+(err.message||"Không thể cập nhật")}
+ finally{btn.disabled=false}
+}
+document.getElementById("refresh-drive-now").addEventListener("click",instantDriveRefresh);
+
 const CHECKIN_SOURCE="./attendance.json";
 let checkins={};
 let checkinLoaded=false;
@@ -162,6 +263,9 @@ async function syncDriveAttendance(){
     if(!entry || !Number.isInteger(entry.day) || typeof entry.name!=="string")continue;
     if(DATA.plan.some(p=>p.day===entry.day&&p.name===entry.name))next[checkinKey(entry.day,entry.name)]=true;
   }
+  const snapshotMs=Date.parse(snapshot.updatedAt||"")||0;
+  const currentMs=Date.parse(lastDriveUpdated||"")||0;
+  if(checkinLoaded && snapshotMs<currentMs)return; // Ignore snapshot older than a direct Drive check.
   checkins=next;
   checkinLoaded=true;
   lastDriveUpdated=snapshot.updatedAt||"";
@@ -269,6 +373,7 @@ document.getElementById("copy-day").addEventListener("click",copyDailyToRoom);
 daySel.addEventListener("change",showDay);
 showRoutes();showDay();
 syncDriveAttendance();
+loadDirectDriveUrl();
 setInterval(syncDriveAttendance,120000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)syncDriveAttendance()});
 function selectRouteByIndex(index){
