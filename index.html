@@ -127,9 +127,10 @@ main{max-width:1680px;padding:20px clamp(12px,2.5vw,38px);margin:0 auto}
   <div class="manager-switches">
    <label class="manager-switch"><input type="checkbox" id="manager-show-balance"> Hiện bảng ⚖️ Phân bổ số buổi / số tờ</label>
    <label class="manager-switch"><input type="checkbox" id="manager-show-drive"> Hiện mục ⚙️ Kết nối Google Apps Script</label>
+   <label class="manager-switch"><input type="checkbox" id="manager-show-note"> Hiện ghi chú về lịch triển khai và nút Copy</label>
   </div>
-  <p>Hai mục mặc định được ẩn. Tùy chọn chỉ lưu trên trình duyệt này, không thay đổi dữ liệu điểm danh.</p>
-  <div class="manager-footer"><button id="manager-hide-all" class="manager-action" type="button">Ẩn cả hai mục</button><button id="manager-lock" class="manager-action primary" type="button">Khóa và đóng</button></div>
+  <p>Các mục mặc định được ẩn. Tùy chọn chỉ lưu trên trình duyệt này, không thay đổi dữ liệu điểm danh.</p>
+  <div class="manager-footer"><button id="manager-hide-all" class="manager-action" type="button">Ẩn tất cả</button><button id="manager-lock" class="manager-action primary" type="button">Khóa và đóng</button></div>
  </div>
  <p>Mật khẩu này chỉ khóa chức năng điều khiển hiển thị trên giao diện, không bảo vệ mã nguồn của website công khai.</p>
 </section>
@@ -155,7 +156,7 @@ main{max-width:1680px;padding:20px clamp(12px,2.5vw,38px);margin:0 auto}
 </div>
 <div class="copy-panel"><div class="copy-row"><div><h3>📋 Lịch gửi nhóm nhân viên</h3><p>Chọn ngày ở trên, bấm Copy rồi dán vào room Zalo. Tin nhắn có tên từng bạn, điểm phát, số tờ và link Google Maps gốc.</p></div><div class="copy-actions"><button id="copy-day" class="copy-action" type="button">📋 COPY LỊCH NGÀY ĐÃ CHỌN</button><span id="copy-status" class="copy-status" role="status" aria-live="polite"></span></div></div><details id="copy-preview-wrap"><summary>Xem trước nội dung sẽ gửi vào room</summary><pre id="copy-preview"></pre></details></div>
 <details class="balance-panel" hidden><summary>⚖️ Phân bổ: Nam, Khoa, Hùng 4 lượt; 1 bạn khác 4 lượt; 8 bạn còn lại 3 lượt</summary><div id="balance-grid" class="balance-grid"></div></details>
-<div id="paircards" class="grid"></div><p class="warning">Ngày 11/10 giữ nguyên 8 bạn và tuyến đã triển khai. Nam, Khoa, Hùng còn 4 buổi/người; không ai dưới 3 buổi. Từ 12/10, người đi cùng và tuyến là đề xuất; quản lý xác nhận trước khi gửi. Nút Copy chỉ sao chép nội dung, không tự gửi Zalo.</p>
+<div id="paircards" class="grid"></div><p id="manager-campaign-note" class="warning" hidden>Ngày 11/10 giữ nguyên 8 bạn và tuyến đã triển khai. Nam, Khoa, Hùng còn 4 buổi/người; không ai dưới 3 buổi. Từ 12/10, người đi cùng và tuyến là đề xuất; quản lý xác nhận trước khi gửi. Nút Copy chỉ sao chép nội dung, không tự gửi Zalo.</p>
 </div></section>
 </main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -483,19 +484,24 @@ renderBalance();
  const drive=document.getElementById("direct-drive-settings");
  const balanceInput=document.getElementById("manager-show-balance");
  const driveInput=document.getElementById("manager-show-drive");
- const preference={balance:false,drive:false};
+ const note=document.getElementById("manager-campaign-note");
+ const noteInput=document.getElementById("manager-show-note");
+ const preference={balance:false,drive:false,note:false};
  try{
    const saved=JSON.parse(localStorage.getItem(prefKey)||"null");
    if(saved&&typeof saved==="object"){
      preference.balance=saved.balance===true;
      preference.drive=saved.drive===true;
+     preference.note=saved.note===true;
    }
  }catch(_){}
  function apply(){
    balance.hidden=!preference.balance;
    drive.hidden=!preference.drive;
+   note.hidden=!preference.note;
    balanceInput.checked=preference.balance;
    driveInput.checked=preference.drive;
+   noteInput.checked=preference.note;
  }
  function save(){
    try{localStorage.setItem(prefKey,JSON.stringify(preference))}catch(_){}
@@ -537,9 +543,14 @@ renderBalance();
    if(preference.drive)drive.open=true;
    apply();save();
  });
+ noteInput.addEventListener("change",()=>{
+   preference.note=noteInput.checked;
+   apply();save();
+ });
  document.getElementById("manager-hide-all").addEventListener("click",()=>{
    preference.balance=false;
    preference.drive=false;
+   preference.note=false;
    apply();save();
  });
  document.getElementById("manager-lock").addEventListener("click",close);
