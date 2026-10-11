@@ -63,7 +63,7 @@ main{max-width:1680px;padding:20px clamp(12px,2.5vw,38px);margin:0 auto}
 .attendance-track>span{display:block;height:100%;background:#169675;transition:width .18s}
 .attendance-people{margin:12px 0 2px;display:grid;gap:8px}
 .attendee{display:flex;align-items:center;gap:10px;cursor:pointer;padding:9px 10px;border:1px solid #d6e5e1;border-radius:9px;background:#f8fafb;font-size:13px}
-.attendee input{width:19px;height:19px;accent-color:#078875;flex-shrink:0;cursor:pointer}
+.attendee input:disabled{opacity:1;cursor:default}.attendee{cursor:default}.attendee input{width:19px;height:19px;accent-color:#078875;flex-shrink:0;cursor:pointer}
 .attendee span{display:flex;gap:6px;justify-content:space-between;align-items:center;flex:1;flex-wrap:wrap}
 .attendee em{font-size:11px;font-style:normal;color:#587181}
 .attendee-done{background:#e5f6ef;border-color:#8cd3b6}
@@ -92,7 +92,7 @@ main{max-width:1680px;padding:20px clamp(12px,2.5vw,38px);margin:0 auto}
   <div class="att-heading">✅ Điểm danh hoàn tất theo từng nhân viên</div>
   <div class="att-metrics"><strong id="attendance-day-status">Ngày: 0/0 bạn hoàn tất</strong><span id="attendance-all-status">Toàn chiến dịch: 0/40 lượt</span></div>
   <div class="attendance-track"><span id="attendance-progress" style="width:0%"></span></div>
-  <p class="att-note">Anh tích riêng từng bạn sau khi hoàn tất phát. Dấu tích được giữ khi tải lại trang <b>trên cùng trình duyệt và thiết bị</b>; không tự đồng bộ sang thiết bị khác. Không phải chức năng nộp báo cáo.</p>
+  <p class="att-note">Tự xác nhận từ Google Drive: thư mục của ngày có <b>thư mục con đúng tên nhân viên</b> thì hiện Hoàn tất. Không cần tích tay. Trạng thái đồng bộ giữa các máy, được kiểm tra theo giờ, không cập nhật tức thì.</p>
   <p id="attendance-save-note" class="att-note" role="status" aria-live="polite"></p>
 </div>
 <div class="copy-panel"><div class="copy-row"><div><h3>📋 Lịch gửi nhóm nhân viên</h3><p>Chọn ngày ở trên, bấm Copy rồi dán vào room Zalo. Tin nhắn có tên từng bạn, điểm phát, số tờ và link Google Maps gốc.</p></div><div class="copy-actions"><button id="copy-day" class="copy-action" type="button">📋 COPY LỊCH NGÀY ĐÃ CHỌN</button><span id="copy-status" class="copy-status" role="status" aria-live="polite"></span></div></div><details id="copy-preview-wrap"><summary>Xem trước nội dung sẽ gửi vào room</summary><pre id="copy-preview"></pre></details></div>
@@ -131,29 +131,47 @@ daySel.innerHTML=Array.from({length:9},(_,i)=>`<option value="${i+11}">${i+11}/1
 const today=new Date();
 if(today.getFullYear()===2026&&today.getMonth()===9&&today.getDate()>=11&&today.getDate()<=19){daySel.value=String(today.getDate());}
 
-const CHECKIN_KEY="event-351-hch-flyers-person-day-2026-v1";
-function readCheckins(){
- try{const data=JSON.parse(localStorage.getItem(CHECKIN_KEY)||"{}");return data&&typeof data==="object"&&!Array.isArray(data)?data:{}}
- catch(_){return {}}
-}
-let checkins=readCheckins();
+
+const CHECKIN_SOURCE="./attendance.json";
+let checkins={};
+let checkinLoaded=false;
+let lastDriveUpdated="";
 function checkinKey(day,name){return day+"|"+name}
 function completed(day,name){return checkins[checkinKey(day,name)]===true}
-function storeCheckins(){
- try{localStorage.setItem(CHECKIN_KEY,JSON.stringify(checkins));document.getElementById("attendance-save-note").textContent="";}
- catch(_){document.getElementById("attendance-save-note").textContent="⚠️ Không lưu được trên trình duyệt này. Dấu tích có thể mất khi tải lại trang."}
-}
 function updateAttendanceProgress(){
  const day=Number(daySel.value),entries=DATA.plan.filter(p=>p.day===day);
- const done=entries.filter(p=>completed(p.day,p.name)).length;
+ const dayDone=entries.filter(p=>completed(p.day,p.name)).length;
  const allDone=DATA.plan.filter(p=>completed(p.day,p.name)).length;
- document.getElementById("attendance-day-status").textContent="Ngày "+day+"/10: "+done+"/"+entries.length+" bạn hoàn tất"+(done===entries.length?" ✓":"");
- document.getElementById("attendance-all-status").textContent="Toàn chiến dịch: "+allDone+"/"+DATA.plan.length+" lượt hoàn tất";
- document.getElementById("attendance-progress").style.width=(entries.length?100*done/entries.length:0)+"%";
+ const dayNode=document.getElementById("attendance-day-status");
+ const totalNode=document.getElementById("attendance-all-status");
+ dayNode.textContent=checkinLoaded?"Ngày "+day+"/10: "+dayDone+"/"+entries.length+" bạn hoàn tất"+(dayDone===entries.length?" ✓":""):"Đang chờ đồng bộ điểm danh từ Drive";
+ totalNode.textContent=checkinLoaded?"Toàn chiến dịch: "+allDone+"/"+DATA.plan.length+" lượt hoàn tất":"Nguồn xác nhận: thư mục Google Drive";
+ document.getElementById("attendance-progress").style.width=checkinLoaded&&entries.length?(100*dayDone/entries.length)+"%":"0%";
  const stats=document.getElementById("daystats");
- stats.textContent=(stats.dataset.base||"")+" • hoàn tất "+done+"/"+entries.length;
+ stats.textContent=(stats.dataset.base||"")+(checkinLoaded?" • hoàn tất "+dayDone+"/"+entries.length:" • đang chờ Drive");
 }
-
+async function syncDriveAttendance(){
+ const note=document.getElementById("attendance-save-note");
+ try{
+  const response=await fetch(CHECKIN_SOURCE+"?t="+Date.now(),{cache:"no-store"});
+  if(!response.ok)throw new Error("HTTP "+response.status);
+  const snapshot=await response.json();
+  if(snapshot.version!==1||!Array.isArray(snapshot.completed))throw new Error("Tệp trạng thái không hợp lệ");
+  const next={};
+  for(const entry of snapshot.completed){
+    if(!entry || !Number.isInteger(entry.day) || typeof entry.name!=="string")continue;
+    if(DATA.plan.some(p=>p.day===entry.day&&p.name===entry.name))next[checkinKey(entry.day,entry.name)]=true;
+  }
+  checkins=next;
+  checkinLoaded=true;
+  lastDriveUpdated=snapshot.updatedAt||"";
+  note.textContent="Nguồn Google Drive • Bản đồng bộ gần nhất: "+(lastDriveUpdated?new Date(lastDriveUpdated).toLocaleString("vi-VN"):"chưa rõ")+". Lịch quét: tối đa khoảng 1 giờ/lần.";
+  showDay();
+ }catch(e){
+  note.textContent="⚠️ Chưa lấy được trạng thái Drive. "+(checkinLoaded?"Đang hiển thị bản đồng bộ đã tải gần nhất.":"Chưa xác nhận được nhân viên nào; không coi là chưa hoàn tất.");
+  updateAttendanceProgress();
+ }
+}
 function showDay(){
  const day=+daySel.value,items=DATA.plan.filter(p=>p.day===day);
  const pairs=[];
@@ -166,7 +184,7 @@ function showDay(){
  document.getElementById("daystats").dataset.base=`${items.length} nhân sự • ${items.reduce((a,x)=>a+x.amount,0)} tờ (${day===11?"ngày 11 đã triển khai":"dự kiến"}) • ${pairs.length} cặp có thể đi chung`;
  document.getElementById("paircards").innerHTML=pairs.map((p,i)=>{
    const unique=[...new Map(p.rows.map(a=>[a.route,a])).values()];
-   return `<article class="assignment"><div class="top"><h3>Lượt phát ${i+1}</h3><b style="color:#08776b">${p.rows.reduce((s,x)=>s+x.amount,0)} tờ</b></div><div class="people">${p.people.map(esc).join(" &nbsp; + &nbsp; ")}</div><div class="attendance-people">${p.rows.map(row=>`<label class="attendee ${completed(day,row.name)?"attendee-done":""}"><input type="checkbox" class="person-check" data-day="${day}" data-name="${esc(row.name)}" ${completed(day,row.name)?"checked":""} aria-label="Đánh dấu hoàn tất cho ${esc(row.name)} ngày ${day}/10"><span><b>${esc(row.name)} · ${row.amount} tờ</b><em>${completed(day,row.name)?"✓ Đã hoàn tất":"Chưa hoàn tất"}</em></span></label>`).join("")}</div><div class="roads">${unique.map(x=>esc(x.route)).join(" → ")}</div>${unique.map(x=>`<a class="link" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">Mở tuyến Maps ↗</a>`).join("")}</article>`;
+   return `<article class="assignment"><div class="top"><h3>Lượt phát ${i+1}</h3><b style="color:#08776b">${p.rows.reduce((s,x)=>s+x.amount,0)} tờ</b></div><div class="people">${p.people.map(esc).join(" &nbsp; + &nbsp; ")}</div><div class="attendance-people">${p.rows.map(row=>`<label class="attendee ${completed(day,row.name)?"attendee-done":""}"><input type="checkbox" disabled class="person-check" data-day="${day}" data-name="${esc(row.name)}" ${completed(day,row.name)?"checked":""} aria-label="Trạng thái Drive của ${esc(row.name)} ngày ${day}/10"><span><b>${esc(row.name)} · ${row.amount} tờ</b><em>${!checkinLoaded?"Chờ Drive":completed(day,row.name)?"✓ Hoàn tất":"Chưa hoàn tất"}</em></span></label>`).join("")}</div><div class="roads">${unique.map(x=>esc(x.route)).join(" → ")}</div>${unique.map(x=>`<a class="link" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">Mở tuyến Maps ↗</a>`).join("")}</article>`;
  }).join("");
  document.getElementById("copy-preview").textContent=makeDailyMessage(day);
  document.getElementById("copy-status").textContent="";
@@ -247,25 +265,12 @@ async function copyDailyToRoom(){
 }
 document.getElementById("copy-day").addEventListener("click",copyDailyToRoom);
 
-document.getElementById("paircards").addEventListener("change",event=>{
- const box=event.target;
- if(!box.matches("input.person-check"))return;
- const day=Number(box.dataset.day),name=box.dataset.name;
- if(!DATA.plan.some(p=>p.day===day&&p.name===name))return;
- if(box.checked)checkins[checkinKey(day,name)]=true;
- else delete checkins[checkinKey(day,name)];
- storeCheckins();
- const item=box.closest(".attendee");
- if(item){
-   item.classList.toggle("attendee-done",box.checked);
-   const status=item.querySelector("em");
-   if(status)status.textContent=box.checked?"✓ Đã hoàn tất":"Chưa hoàn tất";
- }
- updateAttendanceProgress();
-});
-window.addEventListener("storage",e=>{if(e.key===CHECKIN_KEY){checkins=readCheckins();showDay()}});
+// Điểm danh chỉ đọc từ Drive, không sửa trên trình duyệt.
 daySel.addEventListener("change",showDay);
 showRoutes();showDay();
+syncDriveAttendance();
+setInterval(syncDriveAttendance,120000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)syncDriveAttendance()});
 function selectRouteByIndex(index){
  const r=DATA.routes[index]; if(!r)return;
  document.getElementById('original-link').href=r.url;
