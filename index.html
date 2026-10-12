@@ -71,6 +71,9 @@ main{max-width:1680px;padding:20px clamp(12px,2.5vw,38px);margin:0 auto}
 .attendee em{font-size:11px;font-style:normal;color:#587181}
 .attendee-done{background:#e5f6ef;border-color:#8cd3b6}
 .attendee-done em{color:#087251;font-weight:800}
+.assignment a.attendee-report{display:flex;margin:0;text-decoration:none;color:inherit;white-space:normal;cursor:pointer}
+.attendee-report:hover{border-color:#087a60;background:#d5f0e5}
+.attendee-report:focus-visible{outline:3px solid #087a60;outline-offset:2px}
 
 
 .att-actions{display:flex;gap:11px;flex-wrap:wrap;align-items:center;margin-top:11px}
@@ -282,14 +285,16 @@ async function instantDriveRefresh(){
   if(!result||result.ok!==true||result.version!==1||!Array.isArray(result.completed)){
     throw new Error(result?.error||"Phản hồi từ Apps Script không hợp lệ");
   }
-  const fresh={};
+  const fresh={},freshFolders={};
   for(const e of result.completed){
    if(e && Number.isInteger(e.day) && typeof e.name==="string" &&
       DATA.plan.some(x=>x.day===e.day&&x.name===e.name)){
      fresh[checkinKey(e.day,e.name)]=true;
+     const url=validReportFolderUrl(e.folderUrl);
+     if(url)freshFolders[checkinKey(e.day,e.name)]=url;
    }
   }
-  checkins=fresh;checkinLoaded=true;lastDriveUpdated=result.updatedAt||new Date().toISOString();
+  checkins=fresh;reportFolders=freshFolders;checkinLoaded=true;lastDriveUpdated=result.updatedAt||new Date().toISOString();
   showDay();
   const done=DATA.plan.filter(x=>completed(x.day,x.name)).length;
   status.textContent="✓ Đã cập nhật trực tiếp: "+done+"/"+DATA.plan.length+" lượt hoàn tất.";
@@ -303,10 +308,20 @@ document.getElementById("refresh-drive-now").addEventListener("click",instantDri
 
 const CHECKIN_SOURCE="./attendance.json";
 let checkins={};
+let reportFolders={};
 let checkinLoaded=false;
 let lastDriveUpdated="";
 function checkinKey(day,name){return day+"|"+name}
 function completed(day,name){return checkins[checkinKey(day,name)]===true}
+function validReportFolderUrl(raw){
+ try{const u=new URL(raw);return u.protocol==="https:"&&u.hostname==="drive.google.com"&&/^\/drive\/(?:u\/\d+\/)?folders\/[A-Za-z0-9_-]+$/.test(u.pathname)?u.href:""}catch(_){return ""}
+}
+function renderAttendee(day,row){
+ const done=completed(day,row.name),url=reportFolders[checkinKey(day,row.name)];
+ const body=`<i class="attendee-status-icon" aria-hidden="true">${!checkinLoaded?"…":done?"✓":"–"}</i><span><b>${esc(row.name)} · ${row.amount} tờ</b><em>${!checkinLoaded?"Chờ Drive":done?"✓ Hoàn tất":"Chưa hoàn tất"}${url?" · Mở báo cáo ↗":""}</em></span>`;
+ const cls="attendee "+(done?"attendee-done":"");
+ return url?`<a class="${cls} attendee-report" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Mở báo cáo của ${esc(row.name)} ngày ${day}/10">${body}</a>`:`<div class="${cls}">${body}</div>`;
+}
 function updateAttendanceProgress(){
  const day=Number(daySel.value),entries=DATA.plan.filter(p=>p.day===day);
  const dayDone=entries.filter(p=>completed(p.day,p.name)).length;
@@ -326,15 +341,19 @@ async function syncDriveAttendance(){
   if(!response.ok)throw new Error("HTTP "+response.status);
   const snapshot=await response.json();
   if(snapshot.version!==1||!Array.isArray(snapshot.completed))throw new Error("Tệp trạng thái không hợp lệ");
-  const next={};
+  const next={},nextFolders={};
   for(const entry of snapshot.completed){
     if(!entry || !Number.isInteger(entry.day) || typeof entry.name!=="string")continue;
-    if(DATA.plan.some(p=>p.day===entry.day&&p.name===entry.name))next[checkinKey(entry.day,entry.name)]=true;
+    if(DATA.plan.some(p=>p.day===entry.day&&p.name===entry.name)){
+      const key=checkinKey(entry.day,entry.name);next[key]=true;
+      const url=validReportFolderUrl(entry.folderUrl);if(url)nextFolders[key]=url;
+    }
   }
   const snapshotMs=Date.parse(snapshot.updatedAt||"")||0;
   const currentMs=Date.parse(lastDriveUpdated||"")||0;
   if(checkinLoaded && snapshotMs<currentMs)return; // Ignore snapshot older than a direct Drive check.
   checkins=next;
+  reportFolders=nextFolders;
   checkinLoaded=true;
   lastDriveUpdated=snapshot.updatedAt||"";
   note.textContent="Nguồn Google Drive • Bản đồng bộ gần nhất: "+(lastDriveUpdated?new Date(lastDriveUpdated).toLocaleString("vi-VN"):"chưa rõ")+". Lịch quét: tối đa khoảng 1 giờ/lần.";
@@ -356,7 +375,7 @@ function showDay(){
  document.getElementById("daystats").dataset.base=`${items.length} nhân sự • ${items.reduce((a,x)=>a+x.amount,0)} tờ (${day===11?"ngày 11 đã triển khai":"dự kiến"}) • ${pairs.length} cặp có thể đi chung`;
  document.getElementById("paircards").innerHTML=pairs.map((p,i)=>{
    const unique=[...new Map(p.rows.map(a=>[a.route,a])).values()];
-   return `<article class="assignment"><div class="top"><h3>Lượt phát ${i+1}</h3><b style="color:#08776b">${p.rows.reduce((s,x)=>s+x.amount,0)} tờ</b></div><div class="people">${p.people.map(esc).join(" &nbsp; + &nbsp; ")}</div><div class="attendance-people">${p.rows.map(row=>`<div class="attendee ${completed(day,row.name)?"attendee-done":""}"><i class="attendee-status-icon" aria-hidden="true">${!checkinLoaded?"…":completed(day,row.name)?"✓":"–"}</i><span><b>${esc(row.name)} · ${row.amount} tờ</b><em>${!checkinLoaded?"Chờ Drive":completed(day,row.name)?"✓ Hoàn tất":"Chưa hoàn tất"}</em></span></div>`).join("")}</div><div class="roads">${unique.map(x=>esc(x.route)).join(" → ")}</div>${unique.map(x=>`<a class="link" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">Mở tuyến Maps ↗</a>`).join("")}</article>`;
+   return `<article class="assignment"><div class="top"><h3>Lượt phát ${i+1}</h3><b style="color:#08776b">${p.rows.reduce((s,x)=>s+x.amount,0)} tờ</b></div><div class="people">${p.people.map(esc).join(" &nbsp; + &nbsp; ")}</div><div class="attendance-people">${p.rows.map(row=>renderAttendee(day,row)).join("")}</div><div class="roads">${unique.map(x=>esc(x.route)).join(" → ")}</div>${unique.map(x=>`<a class="link" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">Mở tuyến Maps ↗</a>`).join("")}</article>`;
  }).join("");
  document.getElementById("copy-preview").textContent=makeDailyMessage(day);
  document.getElementById("copy-status").textContent="";
