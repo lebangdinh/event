@@ -1,5 +1,34 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-11T10:58:30.959Z",
-  "completed": []
+  "updatedAt": "2026-10-12T04:40:02.789Z",
+  "completed": [
+    {
+      "day": 11,
+      "name": "Lê Thị Thanh Trâm"
+    },
+    {
+      "day": 11,
+      "name": "Lê Văn Nhân"
+    },
+    {
+      "day": 11,
+      "name": "Nguyễn Quỳnh Anh"
+    },
+    {
+      "day": 11,
+      "name": "Nguyễn Thị Thy"
+    },
+    {
+      "day": 11,
+      "name": "Tạ Đức Hiếu"
+    },
+    {
+      "day": 11,
+      "name": "Trần Thị Huyền Trang"
+    },
+    {
+      "day": 11,
+      "name": "Trần Thị Mỹ Trang"
+    }
+  ]
 }
