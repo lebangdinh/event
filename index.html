@@ -487,18 +487,19 @@ renderBalance();
  const driveInput=document.getElementById("manager-show-drive");
  const note=document.getElementById("manager-campaign-note");
  const noteInput=document.getElementById("manager-show-note");
+ let managerAuthenticated=false;
  const preference={balance:false,drive:false,note:false};
  try{
    const saved=JSON.parse(localStorage.getItem(prefKey)||"null");
    if(saved&&typeof saved==="object"){
      preference.balance=saved.balance===true;
-     preference.drive=saved.drive===true;
+     preference.drive=false;
      preference.note=saved.note===true;
    }
  }catch(_){}
  function apply(){
    balance.hidden=!preference.balance;
-   drive.hidden=!preference.drive;
+   drive.hidden=!(managerAuthenticated&&preference.drive);
    note.hidden=!preference.note;
    balanceInput.checked=preference.balance;
    driveInput.checked=preference.drive;
@@ -508,6 +509,10 @@ renderBalance();
    try{localStorage.setItem(prefKey,JSON.stringify(preference))}catch(_){}
  }
  function close(){
+   managerAuthenticated=false;
+   preference.drive=false;
+   drive.open=false;
+   apply();
    panel.hidden=true;
    trigger.setAttribute("aria-expanded","false");
    controls.hidden=true;
@@ -531,6 +536,7 @@ renderBalance();
    }
    password.value="";
    message.textContent="";
+   managerAuthenticated=true;
    auth.hidden=true;
    controls.hidden=false;
    balanceInput.focus();
@@ -540,6 +546,7 @@ renderBalance();
    apply();save();
  });
  driveInput.addEventListener("change",()=>{
+   if(!managerAuthenticated)return;
    preference.drive=driveInput.checked;
    if(preference.drive)drive.open=true;
    apply();save();
