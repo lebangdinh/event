@@ -152,7 +152,7 @@ main{max-width:1680px;padding:20px clamp(12px,2.5vw,38px);margin:0 auto}
 <p>Triển khai Apps Script với quyền đọc các thư mục ngày, sau đó dán URL Web app kết thúc bằng <b>/exec</b>. Không cần nhập tài khoản hay mật khẩu tại đây.</p>
 <div class="att-setting-row"><input id="direct-drive-url" class="input" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" spellcheck="false"><button type="button" id="save-direct-drive-url" class="chip">Lưu kết nối</button><button type="button" id="clear-direct-drive-url" class="chip">Xóa URL</button></div>
 <p id="direct-drive-settings-status" class="att-note" role="status" aria-live="polite"></p>
-<p><a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener noreferrer">Mở Google Apps Script ↗</a>. Link chỉ lưu trên thiết bị hiện tại, không đưa lên GitHub.</p></details>
+<p><a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener noreferrer">Mở Google Apps Script ↗</a>. Link kết nối mặc định đã có sẵn trên mọi thiết bị. URL tùy chỉnh chỉ lưu trên trình duyệt hiện tại.</p></details>
 </div>
 <div class="copy-panel"><div class="copy-row"><div><h3>📋 Lịch gửi nhóm nhân viên</h3><p>Chọn ngày ở trên, bấm Copy rồi dán vào room Zalo. Tin nhắn có tên từng bạn, điểm phát, số tờ và link Google Maps gốc.</p></div><div class="copy-actions"><button id="copy-day" class="copy-action" type="button">📋 COPY LỊCH NGÀY ĐÃ CHỌN</button><span id="copy-status" class="copy-status" role="status" aria-live="polite"></span></div></div><details id="copy-preview-wrap"><summary>Xem trước nội dung sẽ gửi vào room</summary><pre id="copy-preview"></pre></details></div>
 <details class="balance-panel" hidden><summary>⚖️ Phân bổ: Nam, Khoa, Hùng 4 lượt; 1 bạn khác 4 lượt; 8 bạn còn lại 3 lượt</summary><div id="balance-grid" class="balance-grid"></div></details>
@@ -192,6 +192,7 @@ if(today.getFullYear()===2026&&today.getMonth()===9&&today.getDate()>=11&&today.
 
 
 
+const DEFAULT_DRIVE_ENDPOINT="https://script.google.com/macros/s/AKfycbwz3BxgEpKBrEyqjzYptBkvsWGhWJa8BVjvEaVcjV66ODbSJGBB3TO5axrFKw-v1Eba/exec";
 const DRIVE_URL_STORAGE_KEY="event-drive-appscript-url-v1";
 let driveDirectEndpoint="";
 function isValidAppsScriptUrl(raw){
@@ -221,7 +222,7 @@ function loadDirectDriveUrl(){
    // Xóa mã kết nối khỏi thanh địa chỉ sau khi tiếp nhận.
    try{history.replaceState(null,"",location.pathname+location.search)}catch(_){}
  }
- if(!isValidAppsScriptUrl(driveDirectEndpoint))driveDirectEndpoint="";
+ if(!isValidAppsScriptUrl(driveDirectEndpoint))driveDirectEndpoint=DEFAULT_DRIVE_ENDPOINT;
  document.getElementById("direct-drive-url").value=driveDirectEndpoint;
  document.getElementById("direct-drive-settings-status").textContent=driveDirectEndpoint?
  "✓ Đã lưu kết nối. Bấm Cập nhật ngay để lấy dữ liệu Drive.":
@@ -242,10 +243,10 @@ document.getElementById("save-direct-drive-url").addEventListener("click",()=>{
  catch(_){status.textContent="⚠️ Trình duyệt chặn lưu cài đặt; kết nối sẽ mất khi tải lại."}
 });
 document.getElementById("clear-direct-drive-url").addEventListener("click",()=>{
- driveDirectEndpoint="";
- document.getElementById("direct-drive-url").value="";
+ driveDirectEndpoint=DEFAULT_DRIVE_ENDPOINT;
+ document.getElementById("direct-drive-url").value=driveDirectEndpoint;
  try{localStorage.removeItem(DRIVE_URL_STORAGE_KEY)}catch(_){}
- document.getElementById("direct-drive-settings-status").textContent="Đã xóa URL trong trình duyệt này.";
+ document.getElementById("direct-drive-settings-status").textContent="Đã xóa URL tùy chỉnh và khôi phục kết nối mặc định.";
 });
 function requestAppsScript(endpoint){
  return new Promise((resolve,reject)=>{
