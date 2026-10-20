@@ -373,7 +373,7 @@ function showDay(){
   const rows=DATA.plan.filter(p=>p.day===22);
   document.getElementById("daystats").dataset.base="10 bạn • 60 tờ/bạn • tổng 600 tờ • hoàn tất và báo cáo trước 18h ngày 22/10";
   document.getElementById("paircards").style.gridTemplateColumns="1fr";
-  document.getElementById("paircards").innerHTML='<article class="assignment"><div class="top"><h3>Phân công chung 10 bạn</h3><b>600 tờ</b></div><p>Chủ động sắp xếp thời gian. Hoàn tất phát và nộp báo cáo hình ảnh lên Drive <b>trước 18h ngày 22/10/2026</b>.</p><div class="attendance-people">'+rows.map(row=>renderAttendee(22,row)).join("")+'</div></article>';
+  document.getElementById("paircards").innerHTML='<article class="assignment"><div class="top"><h3>Phân công chung 10 bạn</h3><b>600 tờ</b></div><p>Chủ động sắp xếp thời gian. Hoàn tất phát và nộp báo cáo hình ảnh lên Drive <b>trước 18h ngày 22/10/2026</b>.</p><div class="attendance-people">'+rows.map(row=>'<div>'+renderAttendee(22,row)+'<div class="roads" style="margin-top:6px">📍 '+esc(row.route)+'</div><a class="link" href="'+esc(row.url)+'" target="_blank" rel="noopener noreferrer">Mở tuyến Maps ↗</a></div>').join("")+'</div></article>';
   document.getElementById("copy-preview").textContent=makeDailyMessage(22);
   document.getElementById("copy-status").textContent="";
   updateAttendanceProgress();return;
@@ -400,7 +400,7 @@ function showDay(){
 }
 
 // A standalone, copy-ready Zalo/room message. All quantities and URLs come from the day plan above.
-const FINAL_ASSIGNMENT_MESSAGE="📣 PHÂN CÔNG PHÁT TỜ RƠI ĐỢT CUỐI\n\nMỗi bạn 60 tờ, tổng 600 tờ:\n\n1. Đỗ Nhật Trinh\n2. Nguyễn Quỳnh Anh\n3. Khoa\n4. Nam\n5. Trần Thị Huyền Trang\n6. Lê Văn Nhân\n7. Nguyễn Thị Thy\n8. Lê Thị Thanh Trâm\n9. Tạ Đức Hiếu\n10. Trần Thị Mỹ Trang\n\n⏰ Các bạn chủ động sắp xếp thời gian, hoàn tất phát và nộp báo cáo hình ảnh lên thư mục Drive trước 18h ngày 22/10/2026.";
+const FINAL_ASSIGNMENT_MESSAGE="📣 PHÂN CÔNG PHÁT TỜ RƠI ĐỢT CUỐI\n\n👥 10 bạn • Mỗi bạn 60 tờ • Tổng 600 tờ\n\n1. Đỗ Nhật Trinh – 60 tờ\n📍 Chợ Lê Thanh Nghị (Gần BHX)\n🗺 https://maps.app.goo.gl/sxkB9ZxrxpbG7xKn6\n\n2. Nguyễn Quỳnh Anh – 60 tờ\n📍 Chợ Đầu Mối Hòa Cường\n🗺 https://maps.app.goo.gl/L3JCUUNnoiC9JNak6\n\n3. Khoa – 60 tờ\n📍 Chợ Lê Thanh Nghị (Gần BHX)\n🗺 https://maps.app.goo.gl/sxkB9ZxrxpbG7xKn6\n\n4. Nam – 60 tờ\n📍 Hà Huy Giáp\n🗺 https://maps.app.goo.gl/wsNSa3Uq7PUEv9M77\n\n5. Trần Thị Huyền Trang – 60 tờ\n📍 Chợ Đầu Mối Hòa Cường\n🗺 https://maps.app.goo.gl/L3JCUUNnoiC9JNak6\n\n6. Lê Văn Nhân – 60 tờ\n📍 Chợ Lê Thanh Nghị (Gần BHX)\n🗺 https://maps.app.goo.gl/sxkB9ZxrxpbG7xKn6\n\n7. Nguyễn Thị Thy – 60 tờ\n📍 Chợ Lê Thanh Nghị (Gần BHX)\n🗺 https://maps.app.goo.gl/sxkB9ZxrxpbG7xKn6\n\n8. Lê Thị Thanh Trâm – 60 tờ\n📍 Chợ Đầu Mối Hòa Cường\n🗺 https://maps.app.goo.gl/L3JCUUNnoiC9JNak6\n\n9. Tạ Đức Hiếu – 60 tờ\n📍 Chợ Lê Thanh Nghị (Gần BHX)\n🗺 https://maps.app.goo.gl/sxkB9ZxrxpbG7xKn6\n\n10. Trần Thị Mỹ Trang – 60 tờ\n📍 Chợ Lê Thanh Nghị (Gần BHX)\n🗺 https://maps.app.goo.gl/sxkB9ZxrxpbG7xKn6\n\n⏰ Các bạn chủ động sắp xếp thời gian, hoàn tất phát và nộp báo cáo hình ảnh lên thư mục Drive trước 18h ngày 22/10/2026.";
 function makeDailyMessage(day){
  if(day===21||day===22)return FINAL_ASSIGNMENT_MESSAGE;
  if(NO_DISTRIBUTION_DAYS.includes(day))return `NGÀY ${day}/10/2026: KHÔNG PHÁT TỜ RƠI
